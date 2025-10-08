@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express()
-const { createCMSOrganizer, createCMSUsers } = require('./controller')
-const { authenticateUser } = require('../../../middlewares/auth')
+const { createCMSOrganizer, createCMSUsers, getCMSUsers } = require('./controller')
+const { authenticateUser, authorizeRoles } = require('../../../middlewares/auth')
 
-router.post('/organizers', createCMSOrganizer)
-router.post('/users', authenticateUser, createCMSUsers)
+router.post('/organizers', authenticateUser, authorizeRoles('owner'), createCMSOrganizer)
+router.post('/users', authenticateUser, authorizeRoles('organizer'), createCMSUsers)
+router.get('/users', authenticateUser, authorizeRoles('owner'), getCMSUsers)
 
 module.exports = router;

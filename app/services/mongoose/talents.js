@@ -5,7 +5,7 @@ const { NotFoundError, BadRequestError } = require('../../errors')
 const getAllTalents = async (req) => {
   const { keyword } = req.query
 
-  let condition = {}
+  let condition = { organizer: req.user.organizer }
 
   if (keyword) {
     condition = { ...condition, name: { $regex: keyword, $options: 'i' } }
@@ -27,13 +27,13 @@ const createTalents = async (req) => {
 
   await checkingImage(image)
 
-  const check = await Talents.findOne({ name })
+  const check = await Talents.findOne({ name, organizer: req.user.organizer })
 
   if (check) {
     throw new BadRequestError(`Talent ${name} already exists`)
   }
 
-  const result = await Talents.create({ name, image, role })
+  const result = await Talents.create({ name, image, role, organizer: req.user.organizer })
 
   return result
 
@@ -42,7 +42,7 @@ const createTalents = async (req) => {
 const getOneTalents = async (req) => {
   const { id } = req.params
 
-  const result = await Talents.findOne({ _id: id })
+  const result = await Talents.findOne({ _id: id, organizer: req.user.organizer })
     .populate({
       path: 'image',
       select: '_id name'
@@ -63,13 +63,13 @@ const updateTalents = async (req) => {
 
   await checkingImage(image)
 
-  const checkTalentId = await Talents.findOne({ _id: id })
+  const checkTalentId = await Talents.findOne({ _id: id, organizer: req.user.organizer })
 
   if (!checkTalentId) {
     throw new NotFoundError(`Talent with id ${id} not found`)
   }
 
-  const checkDuplicateTalent = await Talents.findOne({ name, _id: { $ne: id } })
+  const checkDuplicateTalent = await Talents.findOne({ name, organizer: req.user.organizer, _id: { $ne: id } })
 
   if (checkDuplicateTalent) {
     throw new BadRequestError(`Talent ${name} already exists`)
@@ -77,7 +77,7 @@ const updateTalents = async (req) => {
 
   const result = await Talents.findOneAndUpdate(
     { _id: id },
-    { name, image, role },
+    { name, image, role, organizer: req.user.organizer },
     { new: true, runValidators: true }
   )
 
@@ -88,7 +88,7 @@ const updateTalents = async (req) => {
 const deleteTalents = async (req) => {
   const { id } = req.params
 
-  const result = await Talents.findByIdAndDelete(id)
+  const result = await Talents.findOneAndDelete({ _id: id, organizer: req.user.organizer })
 
   if (!result) {
     throw new NotFoundError(`Talent with id ${id} not found`)
